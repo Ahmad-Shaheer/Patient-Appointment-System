@@ -1,16 +1,47 @@
 from flask import Flask, render_template, flash, request
-from models import Doctor, Patient, Appointment, Availability
+# from models import Doctor, Patient, Appointment, Availability
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
+
 app = Flask(__name__)
-
-
 app.config['SECRET_KEY'] = 'healthcare'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///healthcare.db'
-
 db = SQLAlchemy(app)
 
-@app.route('/', methods = ['GET', 'POST'])
+
+class Patient(db.Model):
+    patient_id = db.Column(db.Integer, primary_key = True, nullable=False)
+    first_name  = db.Column(db.String(80), nullable=False)
+    last_name = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    date_of_birth = db.Column(db.DateTime, nullable=False)
+    address = db.Column(db.String(200), nullable=False)
+    appointments = db.relationship('Appointment', backref = 'patient', lazy = True)
+    
+class Doctor(db.Model):
+    doctor_id = db.Column(db.Integer, primary_key = True)
+    first_name  = db.Column(db.String(80), nullable=False)
+    last_name = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    specialization = db.Column(db.String(100), nullable=False)
+    appointments = db.relationship('Appointment', backref = 'doctor', lazy = True)
+    availability = db.relationship('Availability', backref = 'doctor', lazy = True)
+
+class Appointment(db.Model):
+    appointment_id = db.Column(db.Integer, primary_key = True, nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey("patient.patient_id"), nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey("doctor.doctor_id"), nullable=False)
+    appointment_date = db.Column(db.DateTime, nullable=False)
+    appointment_status = db.Column(db.String(80), nullable=False)
+
+class Availability(db.Model):
+    availability_id = db.Column(db.Integer, primary_key = True, nullable=False)
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.doctor_id'), nullable=False)
+    available_start_time = db.Column(db.DateTime, nullable=False)
+    available_end_time = db.Column(db.DateTime, nullable=False)
+
+
+@app.route('/book_appointment', methods = ['GET', 'POST'])
 def book_appointment():
     if request.method == 'POST':
         patient_id = request.form['patient_id']
@@ -37,37 +68,17 @@ def book_appointment():
 
     return render_template('book_appointment2.html')
 
-# @app.route('/dashboard/<int:patient_id>')
-# def dashboard(patient_id):
-#     patient = db.execute('SELECT * FROM patient WHERE patient_id = ?', (patient_id,)).fetchone()
-#     appointments = db.execute('SELECT * FROM appointment WHERE patient_id = ?', (patient_id,)).fetchall()
-#     doctors = db.execute('SELECT * FROM doctor').fetchall()
-#     return render_template('dashboard.html', patient=patient, appointments=appointments, doctors=doctors)
 
-# from flask import Flask, render_template, request, redirect, url_for
-# from flask_sqlalchemy import SQLAlchemy
+@app.route('/dashboard/<int:patient_id>', methods=['GET'])
+def patient_appointment(patient_id):
+    patient = Patient.query.get(patient_id)
+    if not patient:
+        flash('Patient not found.')
+        return render_template('dashboard.html')
 
-# app = Flask(__name__)
-# app.config['SECRET_KEY'] = 'healthcare'
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///healthcare.db'
-# db = SQLAlchemy(app)
+    appointments = Appointment.query.filter_by(patient_id=patient_id).all()
 
-# # Import models here if not in the same file
-# from models import Patient, Appointment
-
-# @app.route('/dashboard')
-# def dashboard():
-#     patient_id = 1  # Replace with dynamic patient_id from session or query parameter
-#     patient = Patient.query.get(patient_id)
-#     if patient is None:
-#         return "Patient not found", 404
-
-#     appointments = Appointment.query.filter_by(patient_id=patient_id).all()
-
-#     return render_template('dashboard.html', patient=patient, appointments=appointments)
-
-# if __name__ == '__main__':
-#     app.run(debug=True)
+    return render_template('dashboard.html', patient=patient, appointments=appointments)
 
 if __name__ == '__main__':
     with app.app_context():
