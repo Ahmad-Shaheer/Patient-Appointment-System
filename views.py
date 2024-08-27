@@ -69,7 +69,7 @@ def book_appointment():
     return render_template('book_appointment2.html')
 
 
-@app.route('/dashboard/<int:patient_id>', methods=['GET'])
+@app.route('/dashboard', methods=['GET'])
 def patient_appointment(patient_id):
     patient = Patient.query.get(patient_id)
     if not patient:
