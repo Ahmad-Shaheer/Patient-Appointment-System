@@ -17,9 +17,6 @@ def patient_login():
 
 @app.route('/dashboard', methods=['GET'])
 def patient_dashborad():
-    # patient = Patient.query.get(patient_id)
-    # if not patient:
-    #     flash('Patient not found.')
         return render_template('dashboard.html')
 if __name__ == '__main__':
     app.run(debug=True)
